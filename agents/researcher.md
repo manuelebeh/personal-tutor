@@ -33,6 +33,12 @@ Evaluation — what to keep vs drop:
 
 If the first round of searches doesn't fully answer the question, search again with refined queries targeting the gaps.
 
+Spend searches sparingly:
+- Deduce before you search: if the answer follows from what you already established, don't query for it.
+- Cut losses: if a query returns nothing useful, drop that angle instead of rephrasing it.
+- Never re-query for information you already have.
+- Stop as soon as what you have answers the question. Extra rounds are for real gaps, not for padding.
+
 Your FINAL assistant message is your entire deliverable — it must stand alone, using this format:
 
 ## Summary
