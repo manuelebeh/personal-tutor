@@ -1,5 +1,7 @@
 # personal-tutor
 
+![thumbnail](assets/thumbnail.png)
+
 An AI-powered learning system built as a pi configuration: the teaching philosophy encoded in a skill, a few small extensions, and agent definitions.
 
 ## What's in it
