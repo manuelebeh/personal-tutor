@@ -41,3 +41,22 @@ The teaching skill is written for one learner (me). Edit the skill to fit how yo
 ## Troubleshooting
 
 **The `md-log` file doesn't seem to update live in Obsidian.** `md-log` writes the full file synchronously (`fs.writeFileSync`) on every message and every quiz/question event — the content on disk is always current the moment a reply or quiz result lands, nothing is batched or delayed on this end. If Obsidian isn't visibly refreshing, it's Obsidian's editor not hot-reloading an externally-changed file while a pane is actively focused in edit/Live Preview mode — a known Obsidian behavior, not something this extension controls. Workarounds: view the note in **Reading view** (it reliably refreshes on external change), or click away to another file and back to force a reload.
+
+## Implementation notes
+
+This system implements the three proposals from [issue #2](https://github.com/amosblomqvist/learn/issues/2):
+
+1. **Live DAG visualization** — dependency maps update with colored node status (pending/current/verified/misconception) as each concept is confirmed.
+2. **Cross-session knowledge graph** — `knowledge-graph.md` persists verified concepts with spaced-repetition intervals, so subsequent lessons avoid re-probing known material.
+3. **Collapse and expand** — fully mastered subgraphs compress into their generative roots at lesson end, expanding only when needed or when knowledge decays.
+
+Also addresses:
+- [issue #1](https://github.com/amosblomqvist/learn/issues/1): Mermaid label validation for Obsidian compatibility
+- [issue #5](https://github.com/amosblomqvist/learn/issues/5): Documentation of md-log refresh behavior
+- [issue #11](https://github.com/amosblomqvist/learn/issues/11): Gender-neutral pronouns throughout
+
+## License
+
+This project is licensed under the MIT License — see [LICENSE](LICENSE) for details.
+
+You are free to use, modify, and distribute this system for personal, educational, or commercial purposes. See the [original learn repository](https://github.com/amosblomqvist/learn) for the source.
