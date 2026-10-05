@@ -8,7 +8,7 @@ This is a personal system I built for myself, shared as-is. Built as a pi config
 
 ## What's in it
 
-- `skills/teach/` — the philosophy and the process
+- `skills/teach/` — the philosophy and the process, including a `knowledge-graph.md` record kept at the project root so concepts verified in one session don't get re-probed from zero in the next
 - `skills/visualize/` — adds a correct, minimal diagram to a lesson when an idea is clearer as a picture
 - `extensions/ask-user-question/` — the agent asks you questions through a UI popup
 - `extensions/quiz/` — graded questions with instant feedback (✓/✗, correct answer, explanation)
@@ -37,3 +37,7 @@ Then open pi in that directory. (Or copy the pieces you want into your existing 
 You can run the system without subagents. The main session does the teaching. You just lose the researcher (truth verification) and the generated visuals.
 
 The teaching skill is written for one learner (me). Edit the skill to fit how you learn best.
+
+## Troubleshooting
+
+**The `md-log` file doesn't seem to update live in Obsidian.** `md-log` writes the full file synchronously (`fs.writeFileSync`) on every message and every quiz/question event — the content on disk is always current the moment a reply or quiz result lands, nothing is batched or delayed on this end. If Obsidian isn't visibly refreshing, it's Obsidian's editor not hot-reloading an externally-changed file while a pane is actively focused in edit/Live Preview mode — a known Obsidian behavior, not something this extension controls. Workarounds: view the note in **Reading view** (it reliably refreshes on external change), or click away to another file and back to force a reload.

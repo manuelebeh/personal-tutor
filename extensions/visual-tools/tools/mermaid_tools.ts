@@ -49,6 +49,47 @@ type RenderDetails = { ok: boolean; path: string; filename?: string }
 
 let session: Session | null = null
 
+// Obsidian bundles an older/stricter Mermaid parser than mmdc here, so a
+// diagram that renders fine in this tool's preview can still fail to parse in
+// Obsidian. The known failure shape: an unquoted node label containing a
+// character the stricter grammar treats as a token (`/`, `(`, `)`, `:`, `;`,
+// `,`, `{`, `}`) — see github.com/amosblomqvist/learn/issues/1. Lint for it on
+// every write/edit so the maker can fix it (quote the label) before ever
+// publishing, instead of discovering the break only in Obsidian.
+const RISKY_UNQUOTED_CHARS = /[/():;,{}]/
+// One regex per bracket shape — each stops at its OWN closing char, so label
+// content may freely contain the other shapes' bracket characters (exactly
+// the real-world case: `D1[D1 scaled dot-product /sqrt(dk)]`). Not a real
+// Mermaid parser, just enough structure to flag the known risky pattern.
+const SHAPE_PATTERNS: RegExp[] = [
+  /\b([A-Za-z_][\w-]*)\[(?!")([^[\]]*)\]/g, // ID[label]
+  /\b([A-Za-z_][\w-]*)\((?!\(|")([^()]*)\)/g, // ID(label)
+  /\b([A-Za-z_][\w-]*)\{(?!")([^{}]*)\}/g, // ID{label}
+]
+
+function lintMermaidLabels(source: string): string[] {
+  const warnings: string[] = []
+  const lines = source.split("\n")
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i]
+    for (const pattern of SHAPE_PATTERNS) {
+      pattern.lastIndex = 0
+      let match: RegExpExecArray | null
+      while ((match = pattern.exec(line))) {
+        const [, id, label] = match
+        if (!label || label.startsWith('"')) continue
+        if (RISKY_UNQUOTED_CHARS.test(label)) {
+          warnings.push(
+            `line ${i + 1}: node "${id}" has an unquoted label containing a character Obsidian's ` +
+              `stricter Mermaid parser can choke on ("${label.trim()}"). Quote it, e.g. ${id}["${label.trim()}"].`,
+          )
+        }
+      }
+    }
+  }
+  return warnings
+}
+
 export default function mermaidToolsExtension(pi: ExtensionAPI) {
   // ── write_mermaid ──────────────────────────────────────────────────────────
   pi.registerTool({
@@ -72,11 +113,15 @@ export default function mermaidToolsExtension(pi: ExtensionAPI) {
       if (!source) throw new Error("`write_mermaid` requires a non-empty `source`.")
       session = writeBody(GROUP, BODY_FILE, source)
       const lines = source.split("\n").length
+      const warnings = lintMermaidLabels(source)
+      const warningText = warnings.length > 0
+        ? `\n\nObsidian-compatibility warnings — fix with edit_mermaid before publishing:\n${warnings.join("\n")}`
+        : ""
       return {
         content: [
           {
             type: "text",
-            text: `Wrote ${lines}-line Mermaid source.\nCall render_mermaid to render it, or edit_mermaid to tweak it.`,
+            text: `Wrote ${lines}-line Mermaid source.\nCall render_mermaid to render it, or edit_mermaid to tweak it.${warningText}`,
           },
         ],
         details: { ok: true, path: session.bodyPath, lines },
@@ -105,9 +150,16 @@ export default function mermaidToolsExtension(pi: ExtensionAPI) {
       const current = readFileSync(session.bodyPath, "utf8")
       const { updated, index } = applyEdit(current, String(params.old_text ?? ""), String(params.new_text ?? ""))
       writeFileSync(session.bodyPath, updated, "utf8")
+      const warnings = lintMermaidLabels(updated)
+      const warningText = warnings.length > 0
+        ? `\n\nObsidian-compatibility warnings — fix with another edit_mermaid before publishing:\n${warnings.join("\n")}`
+        : ""
       return {
         content: [
-          { type: "text", text: "Applied edit. Updated region:\n```\n" + snippetAround(updated, index) + "\n```\nCall render_mermaid to see it." },
+          {
+            type: "text",
+            text: "Applied edit. Updated region:\n```\n" + snippetAround(updated, index) + "\n```\nCall render_mermaid to see it." + warningText,
+          },
         ],
         details: { ok: true, path: session.bodyPath },
       }
@@ -142,6 +194,22 @@ export default function mermaidToolsExtension(pi: ExtensionAPI) {
         throw new Error("render_mermaid: no source yet — call write_mermaid first.")
       }
       const { workDir, bodyPath } = session
+
+      if (params.save_as) {
+        const warnings = lintMermaidLabels(readFileSync(bodyPath, "utf8"))
+        if (warnings.length > 0) {
+          return {
+            content: [
+              {
+                type: "text",
+                text: `Refusing to publish — this would likely fail to parse in Obsidian:\n${warnings.join("\n")}\n\nFix with edit_mermaid, then call render_mermaid({ save_as: ... }) again.`,
+              },
+            ],
+            details: { ok: false, path: "" } as RenderDetails,
+          }
+        }
+      }
+
       mkdirSync(workDir, { recursive: true })
 
       const chrome = findChrome()
