@@ -96,6 +96,7 @@ You can't teach into their zone of proximal development without knowing where it
 - **One wrong answer is not "done" either — and it is *not* a cue to start teaching.** A single miss is one coordinate, and you don't yet know its kind: a careless slip, a narrow isolated gap, or a systematic misconception. Probe *around* it to characterize it before concluding anything. Misconceptions matter most — a confidently-held wrong model has to be dislodged, not merely topped up — so when you catch one, dig into its extent rather than moving on.
 - **Map every strand the lesson rests on.** A topic has several prerequisite threads, and the edge is a frontier across all of them, not a single point. Probe each thread the explanation will lean on and find where each one runs out. Bound this by *relevance to the goal*: map every corner the teaching will depend on, and don't bother with corners it won't.
 - **A strand already `verified` in the global knowledge graph gets a spot-check, not a full binary search — but only once its `next_review` date has passed.** You already found this edge in a past session — re-finding it from zero is wasted time. If `next_review` is still in the future, treat the strand as floor without asking. If it's due, fire one `quiz` at roughly the level it was verified at. If they still get it, treat it as floor, double its `interval_days` and move on. If they now miss it, don't trust the stale record — treat the strand as freshly unprobed and bracket it properly, and reset its `interval_days` to 1; knowledge erodes between sessions, and the graph should end up reflecting that, not the other way around.
+- **A strand inside a collapsed cluster is checked as a unit (its roots only), not member-by-member, unless expansion is triggered.** Read the cluster entry and quiz-check its roots; if they pass, treat the whole cluster as floor and move on. If they fail, or if this lesson depends on an inner member of the cluster (a concept-id in the cluster's `members`), not just the cluster itself, run the expand rule from "Collapsing and expanding subgraphs" below — it will tell you how to re-validate the members locally and in what order.
 - **"Makes sense" is not evidence.** Agreement and "I get it" cost nothing and prove nothing. When a strand matters, make them produce something: explain it in their own words, or apply it to a case you haven't shown them (a different domain, an edge case, "what would go wrong if…"). That is a gradable `quiz`, or a free-text answer you then grade yourself.
 
 Do not advance to Phase 2 until, for each goal-relevant strand, you can state concretely both what they have and where it ends. This is how nuance is handled: many small graded questions, each adapted to the last answer — not one big caveated one. Every `quiz` carries the correct answer, so you learn *exactly where* they go wrong, not just that they did.
@@ -120,7 +121,7 @@ A good plan is what makes the teaching feel inevitable instead of arbitrary.
 2. **The dependency map.** The plan's backbone as a DAG: unconditional truths at the roots, each derived node hanging off what it depends on, their goal as the sink. Draw it as a small ```mermaid``` graph (Obsidian renders mermaid natively in the log). This map *is* the teaching order — Phase 3 builds it node by node, and re-renders it live as each node gets confirmed (see Phase 3, step 5). Keep it small: few nodes, short labels — a map, not the territory.
    - Give every node a short kebab-case id (e.g. `self-attention`) as its Mermaid node id — the same id this concept uses in the global knowledge graph (below), so the map and the cross-session record always agree on what they're talking about.
    - **Quote every node label**, e.g. `self-attention["self-attention"]`, not `self-attention[self-attention]`. Obsidian bundles a stricter Mermaid parser than most renderers — an unquoted label containing `/`, `(`, `)`, `:`, `;`, `,`, `{`, or `}` can look fine while you're writing it and still fail to parse once it reaches the learner. Quoting costs nothing, so do it on every node, not just ones that look risky.
-   - Color nodes by status with Mermaid `classDef`/`class` so progress is visible at a glance: `classDef pending fill:#ddd; classDef current fill:#ffd700; classDef verified fill:#90ee90; classDef misconception fill:#ff6b6b;` — every node starts `pending` except the first one you'll teach, which starts `current`.
+   - Color nodes by status with Mermaid `classDef`/`class` so progress is visible at a glance: `classDef pending fill:#ddd; classDef current fill:#ffd700; classDef verified fill:#90ee90; classDef misconception fill:#ff6b6b; classDef collapsed fill:#9ecbff;` — every node starts `pending` except the first one you'll teach, which starts `current`. A prerequisite that is a collapsed cluster appears as one `collapsed` node (id=cluster-id) instead of its inner members.
 
 **Stress-test the roots before presenting.** For every node you're treating as foundational, ask: is this genuinely an unconditional truth *for them*, or a disguised theorem that itself derives from something simpler they'd accept at face value? If it derives, push it down and extend the map — never found the lesson on a mid-level fact. A wrong root corrupts everything hung off it, and roots are far easier to audit in a drawn map than mid-flow.
 
@@ -169,7 +170,42 @@ Sessions aren't isolated. A concept verified last month (say, self-attention, wh
 
 **Write to it after every quiz-check (Phase 3, step 4), not just at the end of the lesson.** The moment a node's quiz-check passes, append or update its entry: `status: verified`, `verified_on` set to today, `interval_days` set per the review-schedule rule above (1 for a new entry, doubled for a pass on an existing one), `next_review` recomputed, `established_in` linking to the current log file and the node's heading if `md-log` is linked (omit the link if it isn't), `depends_on` the concept-ids of whatever this node was built on in this lesson's map. If the quiz-check instead surfaces a misconception, write `status: misconception` and append a one-line note to `misconception_history` — so a future session knows to probe there specifically instead of trusting a `verified` that was never actually earned.
 
-Keep entries terse. This file is a lookup index you consult and update, not a transcript — the log file is where the actual teaching lives.
+### Collapsing and expanding subgraphs
+
+As the knowledge graph grows, reading the whole file becomes wasteful. When a constellation of nodes is entirely verified — all nodes of a lesson DAG pass their quiz-checks — collapse them into a single super-node that stores only the generative roots (the few "click" statements from which the whole subgraph can be re-derived).
+
+**Cluster schema:**
+
+```markdown
+## <cluster-id>
+- type: cluster
+- status: collapsed
+- collapsed_on: YYYY-MM-DD
+- roots: ["<root statement 1>", "<root statement 2>", ...]
+- members: [<concept-id>, ...]
+- depends_on: [<concept-id or cluster-id>, ...]
+```
+
+Member entries remain in the file and gain a back-pointer: `collapsed_into: <cluster-id>`.
+
+**Collapse (end of lesson):** After the final node's quiz-check passes, check if *every* node in the lesson's dependency map is `verified` in the graph. If yes, write a cluster entry with:
+- `<cluster-id>`: same as the lesson's goal node, or a short kebab-case name for the constellation if the goal is already part of another cluster.
+- `roots`: the minimal set of statements (unconditional-truth style, per Principle i) from which every member can be re-derived. Not a summary or overview — the actual *how-you-would-discover-this* for the whole subgraph. Three to five roots is typical; more means the cluster is too diverse and shouldn't exist.
+- `members`: the list of concept-ids that were verified this lesson.
+- `depends_on`: concept-ids or cluster-ids that this cluster's roots depend on (the out-edges from the cluster).
+Show the roots to the learner in a closing recap so they see what the collapse captures: *"You've mastered X, Y, Z. Here's the minimal set of truths that re-generates them: ..."*
+
+**Read cheaply (Phase 1a):** Don't read the entire `knowledge-graph.md` at the start of probing. Instead, look up only the concepts the planned lesson depends on (either directly from Phase 2's map or by searching for entries with matching concept-id). A collapsed cluster is treated as one unit: if the lesson needs a cluster, check its `roots` at face value (a single quiz on the roots, not a per-member search). Its member entries are not examined unless the cluster is expanded (see below).
+
+**Expand (Phase 1a or mid-lesson):** Expand a cluster (read its members individually) when:
+1. The new lesson depends on one of the cluster's inner members (a concept-id in `members`), not just the cluster as a whole.
+2. The cluster's `collapsed_on` date is old (about 3 months as guidance, use judgement). Knowledge decays between sessions, and a cluster this old needs revalidation.
+
+Expansion is local and non-destructive: read the member entries, then spot-check them in an order that minimizes effort — sort by connectivity ascending (count of `depends_on` edges pointing in and out from this concept within the file; sparse, loosely-connected nodes first, densely connected ones last). If a spot-check passes, leave the member as-is; if it fails, remove the `collapsed_into` field, treat the member as freshly unprobed, and run a full binary-search probe on it. If the roots themselves fail a quiz-check, remove the cluster entry entirely and restore all members to normal (remove `collapsed_into`), then re-probe them — the cluster's model is broken and needs rebuilding from scratch.
+
+If all spot-checks pass, refresh `collapsed_on` to today and continue teaching.
+
+**In Phase 2 and 3:** A collapsed cluster appears in the dependency map as a single node with id=cluster-id and a muted blue fill (`classDef collapsed fill:#9ecbff;`), instead of showing all its members. Phase 3 has no new step; collapse happens automatically at lesson end.
 
 ## Formatting — math renders as LaTeX
 

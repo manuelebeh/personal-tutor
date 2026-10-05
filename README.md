@@ -8,7 +8,7 @@ This is a personal system I built for myself, shared as-is. Built as a pi config
 
 ## What's in it
 
-- `skills/teach/` — the philosophy and the process, including a `knowledge-graph.md` record kept at the project root so concepts verified in one session don't get re-probed from zero in the next
+- `skills/teach/` — the philosophy and the process, including a `knowledge-graph.md` record kept at the project root so concepts verified in one session don't get re-probed from zero in the next; fully mastered subgraphs compress into their generative roots for later reuse
 - `skills/visualize/` — adds a correct, minimal diagram to a lesson when an idea is clearer as a picture
 - `extensions/ask-user-question/` — the agent asks you questions through a UI popup
 - `extensions/quiz/` — graded questions with instant feedback (✓/✗, correct answer, explanation)
