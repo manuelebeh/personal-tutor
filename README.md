@@ -16,24 +16,67 @@ An AI-powered learning system built as a pi configuration: the teaching philosop
 
 ## Install
 
-This repo is a `.pi` directory. From your learning project's root:
+1. Install [pi](https://github.com/earendil-works/pi), [tmux](https://github.com/tmux/tmux) and [pnpm](https://pnpm.io):
+
+   ```bash
+   brew install tmux pnpm        # macOS
+   sudo apt install tmux         # Debian/Ubuntu
+   sudo dnf install tmux         # Fedora
+   sudo pacman -S tmux           # Arch
+   ```
+
+   On Linux, install pnpm as described on [pnpm.io/installation](https://pnpm.io/installation). tmux has no native Windows version, and the subagent extension needs it.
+
+2. Clone this repo as a `.pi` directory, from your learning project's root:
+
+   ```bash
+   git clone https://github.com/manuelebeh/personal-tutor .pi
+   ```
+
+3. Install the dependencies of the visual tools (Mermaid rendering):
+
+   ```bash
+   cd .pi/extensions/visual-tools && pnpm install && cd -
+   ```
+
+4. Install the subagent extension. The researcher and the visual makers run as subagents, in tmux panes:
+
+   ```bash
+   pi install git:github.com/amosblomqvist/pi-interactive-subagents
+   ```
+
+5. Start pi **inside tmux**. The subagent extension is tmux-only, so outside tmux the subagents cannot spawn:
+
+   ```bash
+   tmux new -A -s pi 'pi'
+   ```
+
+To avoid retyping it, add an alias to your `~/.zshrc` (or `~/.bashrc`). This syntax is for zsh and bash:
 
 ```bash
-git clone https://github.com/manuelebeh/personal-tutor .pi
+alias pit='tmux new -A -s pi "pi"'
 ```
 
-Then install the dependencies of the visual tools (Mermaid rendering) with [pnpm](https://pnpm.io):
+Then `pit` starts pi inside tmux, and reattaches to the `pi` session if it already exists.
 
-```bash
-cd .pi/extensions/visual-tools && pnpm install
-```
+(Or copy the pieces you want into your existing project config.)
 
-Then open pi in that directory. (Or copy the pieces you want into your existing project config.)
+### Models
+
+Each agent in `agents/` sets its own model, in the frontmatter:
+
+| Agent | Model | Needs |
+| ----- | ----- | ----- |
+| `svg-maker`, `mermaid-maker` | `anthropic/claude-sonnet-5` | an Anthropic credential |
+| `researcher` | `openrouter/z-ai/glm-5.3` | an OpenRouter credential |
+
+Check a provider with `pi auth check --provider anthropic` (or `openrouter`). To use another model, edit the `model:` line of the agent.
 
 ## Requirements
 
 - [pi](https://github.com/earendil-works/pi)
-- A subagent implementation, so the system can spawn the researcher and the visual makers. Recommended: [pi-interactive-subagents](https://github.com/amosblomqvist/pi-interactive-subagents) (tmux only). With it, everything works out of the box. Any other implementation works too, but expect to adapt the agent definitions, e.g. `agents/researcher.md` lists `safe_bash` in its tools, which is specific to that extension.
+- [tmux](https://github.com/tmux/tmux) and a subagent implementation, so the system can spawn the researcher and the visual makers. Recommended: [pi-interactive-subagents](https://github.com/amosblomqvist/pi-interactive-subagents) (tmux only). With it, everything works out of the box. Any other implementation works too, but expect to adapt the agent definitions, e.g. `agents/researcher.md` lists `safe_bash` in its tools, which is specific to that extension.
+- [pnpm](https://pnpm.io) (Node.js) for the Mermaid renderer in `extensions/visual-tools`.
 - `ask-user-question` - use the copy bundled here. If your setup already has an `ask-user-question` extension, use **this** one in its place. Popups from different extensions serialize through a shared UI lock, which only works when it's the same implementation.
 
 ## Notes
