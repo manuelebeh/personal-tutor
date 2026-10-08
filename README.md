@@ -22,6 +22,12 @@ This repo is a `.pi` directory. From your learning project's root:
 git clone https://github.com/manuelebeh/personal-tutor .pi
 ```
 
+Then install the dependencies of the visual tools (Mermaid rendering) with [pnpm](https://pnpm.io):
+
+```bash
+cd .pi/extensions/visual-tools && pnpm install
+```
+
 Then open pi in that directory. (Or copy the pieces you want into your existing project config.)
 
 ## Requirements
