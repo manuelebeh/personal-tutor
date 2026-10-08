@@ -53,7 +53,7 @@ let session: Session | null = null
 // diagram that renders fine in this tool's preview can still fail to parse in
 // Obsidian. The known failure shape: an unquoted node label containing a
 // character the stricter grammar treats as a token (`/`, `(`, `)`, `:`, `;`,
-// `,`, `{`, `}`) — see github.com/amosblomqvist/learn/issues/1. Lint for it on
+// `,`, `{`, `}`) — lint for it on
 // every write/edit so the maker can fix it (quote the label) before ever
 // publishing, instead of discovering the break only in Obsidian.
 const RISKY_UNQUOTED_CHARS = /[/():;,{}]/
